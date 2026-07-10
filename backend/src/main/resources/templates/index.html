@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能图片分析系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <span class="brand-icon">🧠</span> 智能图片分析系统
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link active" href="/">分析</a>
+                <a class="nav-link" href="/history">历史记录</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <!-- 上传区域 -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body text-center py-5">
+                        <div class="upload-zone" id="uploadZone">
+                            <div class="upload-icon">📁</div>
+                            <h4 class="text-muted mb-3">拖拽图片到此处或点击上传</h4>
+                            <p class="text-muted small mb-3">支持 JPG、PNG、GIF，最大 10MB</p>
+                            <input type="file" id="fileInput" accept="image/*" class="d-none">
+                            <button class="btn btn-primary btn-lg" onclick="document.getElementById('fileInput').click()">
+                                选择图片
+                            </button>
+                        </div>
+                        <!-- 预览区 -->
+                        <div id="previewArea" class="d-none mt-4">
+                            <img id="previewImage" class="img-fluid rounded" style="max-height: 400px;" alt="preview">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 加载状态 -->
+                <div id="loadingArea" class="d-none text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-2 text-muted">AI 模型分析中，请稍候...</p>
+                </div>
+
+                <!-- 分析结果 -->
+                <div id="resultArea" class="d-none">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">📊 分析结果</h5>
+                            <span class="badge bg-success" id="topLabel"></span>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="text-muted mb-3">Top-5 预测</h6>
+                            <div id="predictionList" class="prediction-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 错误提示 -->
+                <div id="errorArea" class="d-none">
+                    <div class="alert alert-danger" role="alert">
+                        <h5 class="alert-heading">分析失败</h5>
+                        <p id="errorMessage"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const previewImage = document.getElementById('previewImage');
+        const loadingArea = document.getElementById('loadingArea');
+        const resultArea = document.getElementById('resultArea');
+        const errorArea = document.getElementById('errorArea');
+        const predictionList = document.getElementById('predictionList');
+        const topLabel = document.getElementById('topLabel');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // 拖拽上传
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            // 预览图片
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                previewArea.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
+
+            // 隐藏之前的结果
+            resultArea.classList.add('d-none');
+            errorArea.classList.add('d-none');
+
+            // 显示加载
+            loadingArea.classList.remove('d-none');
+
+            // 上传分析
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('top_k', 5);
+
+            fetch('/upload', { method: 'POST', body: formData })
+                .then(res => {
+                    if (!res.ok) throw new Error('服务器响应异常');
+                    return res.json();
+                })
+                .then(data => {
+                    loadingArea.classList.add('d-none');
+                    displayResults(data);
+                })
+                .catch(err => {
+                    loadingArea.classList.add('d-none');
+                    errorArea.classList.remove('d-none');
+                    errorMessage.textContent = err.message;
+                });
+        }
+
+        function displayResults(data) {
+            resultArea.classList.remove('d-none');
+            const items = data.predictions || [];
+            predictionList.innerHTML = '';
+
+            if (items.length > 0) {
+                topLabel.textContent = items[0].label + ' (' + (items[0].confidence * 100).toFixed(1) + '%)';
+            }
+
+            const maxConf = items.length > 0 ? items[0].confidence : 1;
+            items.forEach((item, idx) => {
+                const pct = (item.confidence * 100).toFixed(1);
+                const barWidth = (item.confidence / maxConf * 100).toFixed(0);
+                const medal = ['🥇', '🥈', '🥉', '4th', '5th'][idx];
+                const div = document.createElement('div');
+                div.className = 'prediction-item mb-3';
+                div.innerHTML = `
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-bold">${medal} ${item.label}</span>
+                        <span class="text-muted">${pct}%</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-${idx === 0 ? 'success' : idx === 1 ? 'info' : idx === 2 ? 'warning' : 'secondary'}"
+                             role="progressbar" style="width: ${barWidth}%"></div>
+                    </div>
+                `;
+                predictionList.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
