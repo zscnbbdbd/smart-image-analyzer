@@ -1,128 +1,74 @@
-# 🧠 Smart Image Analyzer — 智能图片分析系统
+# Smart Image Analyzer — 智能图片分析系统
 
-基于 **Spring Boot + PyTorch** 双栈架构的 AI 图片分类系统。
-用户上传图片 → Spring Boot 后端 → Python AI 微服务（ResNet-18）→ 返回 Top-5 分类结果并持久化存储。
+Based on Spring Boot + PyTorch dual-stack AI image classification system.
+Upload Image → Spring Boot Backend → Python AI Microservice (ResNet-18) → Top-5 Results
 
----
-
-## ✨ 功能特性
-
-- 图片上传与预览 — 支持拖拽上传、点击选择，实时预览
-- AI 智能分类 — 基于 ResNet-18 预训练模型，识别 1000 种物体类别
-- Top-5 概率展示 — 可视化置信度条形图，结果一目了然
-- 分析历史记录 — 所有分析记录持久化存储，支持历史回溯
-- 微服务架构 — Spring Boot + FastAPI 双服务独立部署，松耦合
+[![Java](https://img.shields.io/badge/Java-21-blue)]()
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-brightgreen)]()
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.2-red)]()
 
 ---
 
-## 技术栈
+## Features
 
-| 模块 | 技术 | 说明 |
-|------|------|------|
-| 后端 | Java 21 + Spring Boot 3.3 | RESTful API、Thymeleaf、JPA |
-| AI 引擎 | Python 3.12 + FastAPI | PyTorch、TorchVision、ResNet-18 |
-| 数据库 | H2 (开发) / MySQL (生产) | JPA/Hibernate 自动建表 |
-| 部署 | Docker + Docker Compose | 容器化一键启动 |
-| 前端 | Thymeleaf + Bootstrap 5 | 响应式交互 UI |
+- Image upload with drag-and-drop and preview
+- AI classification using pretrained ResNet-18 (1000 classes)
+- Top-5 results with confidence visualization
+- Analysis history with database persistence
+- Microservice architecture (Spring Boot + FastAPI)
 
----
+## Tech Stack
 
-## 快速开始
+- **Backend**: Java 21, Spring Boot 3.3, JPA, H2/MySQL
+- **AI Engine**: Python, FastAPI, PyTorch 2.2, ResNet-18
+- **Deployment**: Docker Compose
+- **Frontend**: Thymeleaf, Bootstrap 5
 
-### 方式一：本地运行
+## Quick Start
 
-#### 1) 启动 AI 服务
+### Local Development
 
-```bash
+**1) Start AI Service**
+
+`ash
 cd ai-service
 pip install -r requirements.txt
 python -m app.main
-```
+`
 
-AI 服务将在 http://localhost:8000 启动。
-首次运行会自动下载 ResNet-18 预训练模型（约 45MB）。
+Use CPU-only PyTorch if you don't have CUDA:
+`ash
+pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cpu
+`
 
-#### 2) 启动 Spring Boot 后端
+**2) Start Backend**
 
-```bash
+`ash
 cd backend
 mvn clean package -DskipTests
 java -jar target/image-analyzer-backend-1.0.0.jar
-```
+`
 
-#### 3) 访问系统
+**3) Open Browser**
 
-打开浏览器访问 **http://localhost:8080**
+Visit http://localhost:8080
 
-### 方式二：Docker 一键部署
+### Docker
 
-```bash
+`ash
 docker compose up --build
-```
+`
 
-之后访问 http://localhost:8080 即可使用。
+Visit http://localhost:8080
 
----
+## API
 
-## 项目结构
-
-```
-image-analyzer/
-  ai-service/                  Python AI 推理微服务
-    app/main.py                FastAPI 应用
-    app/imagenet_classes.txt   ImageNet 1000 类标签
-    requirements.txt
-    Dockerfile
-  backend/                     Spring Boot Java 后端
-    src/main/java/com/smartimage/
-      ImageAnalyzerApplication.java
-      controller/ImageController.java
-      service/AnalysisService.java
-      model/AnalysisRecord.java
-      repository/AnalysisRecordRepository.java
-      config/RestClientConfig.java
-    src/main/resources/
-      application.yml
-      templates/index.html
-      templates/history.html
-      static/css/style.css
-    pom.xml
-    Dockerfile
-  docker-compose.yml
-  README.md
-```
-
----
-
-## API 接口
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | / | 首页 |
-| GET | /history | 分析历史页面 |
-| POST | /upload | 上传图片进行 AI 分析 |
-| GET | /api/history | 获取历史记录 (JSON) |
-| GET | /api/health | 系统健康检查 |
-
-### /upload 请求示例
-
-```bash
-curl -X POST -F "file=@cat.jpg" -F "top_k=5" http://localhost:8080/upload
-```
-
-### 响应示例
-
-```json
-{
-  "filename": "cat.jpg",
-  "topK": 5,
-  "predictions": [
-    {"rank": 1, "classId": 281, "label": "tabby cat", "confidence": 0.9231}
-  ]
-}
-```
-
----
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | / | Home page |
+| POST | /upload | Upload image for analysis |
+| GET | /api/health | Health check |
+| GET | /api/history | Analysis history (JSON) |
 
 ## License
 
